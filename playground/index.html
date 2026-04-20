@@ -207,26 +207,12 @@ wrap.innerHTML = '<h3 style="font-family:sans-serif;">Popup Example</h3><button 
 root.appendChild(wrap);
 
 const popup = new DemoPopup();
-document.getElementById("openPopup").addEventListener("click", () => popup.open());`,
-      tree: `const state = {
-  items: [
-    { _id: "root", doc: { parentId: null, title: "Root" }, childrens: [] }
-  ]
-};
-
-const tree = new api.TreeManager(() => state);
-tree.addNode({ _id: "child-1", doc: { parentId: "root", title: "Child 1" }, childrens: [] });
-tree.addNode({ _id: "child-2", doc: { parentId: "root", title: "Child 2" }, childrens: [] });
-tree.updateNode("child-2", { title: "Child 2 (updated)" });
-
-root.innerHTML = '<div style="font-family:sans-serif; padding:16px;"><h3>TreeManager Example</h3><pre id="out" style="background:#f5f5f5; padding:10px; border-radius:8px;"></pre></div>';
-document.getElementById("out").textContent = JSON.stringify(state.items, null, 2);`
+document.getElementById("openPopup").addEventListener("click", () => popup.open());`
     };
 
     const labels = {
       counter: "Component Counter",
-      popup: "Popup Component",
-      tree: "Tree Manager"
+      popup: "Popup Component"
     };
 
     const editor = document.getElementById("editor");

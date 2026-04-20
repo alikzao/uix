@@ -58,6 +58,17 @@
       socketService
     };
 
+    const ensureSandboxSocket = () => {
+      if (!socketService.socket) {
+        socketService.socket = {
+          onAny() {},
+          on() {},
+          off() {},
+          emit() {}
+        };
+      }
+    };
+
     const write = (msg) => {
       consoleBox.classList.add("visible");
       consoleBox.textContent += `${msg}\n`;
@@ -73,6 +84,7 @@
 
     const runUserCode = async (code) => {
       clearRuntimeState();
+      ensureSandboxSocket();
       const wrapped = new Function("api", "root", "log", code);
       await wrapped(api, root, write);
     };
