@@ -73,15 +73,19 @@
 
     .workbench {
       min-height: 0;
-      display: grid;
-      grid-template-columns: var(--left-width) 6px 1fr;
-      grid-template-rows: var(--top-height) 6px 1fr;
+      display: flex;
+      flex-direction: column;
+    }
+    .top-region {
+      min-height: 0;
+      display: flex;
     }
     .pane {
       min-width: 0;
       min-height: 0;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
     }
     .pane-header {
       padding: 8px 12px;
@@ -147,38 +151,47 @@
       line-height: 1.45;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
-    .splitter-v,
-    .splitter-h {
+    .gutter {
       background: #22304a;
       position: relative;
       z-index: 10;
     }
-    .splitter-v {
+    .gutter.gutter-horizontal {
       cursor: col-resize;
-      grid-column: 2;
-      grid-row: 1;
+      width: 6px;
     }
-    .splitter-h {
+    .gutter.gutter-vertical {
       cursor: row-resize;
-      grid-column: 1 / 4;
-      grid-row: 2;
+      height: 6px;
     }
-    .code-pane { grid-column: 1; grid-row: 1; border-right: 1px solid var(--border); }
-    .result-pane { grid-column: 3; grid-row: 1; }
-    .logs-pane { grid-column: 1 / 4; grid-row: 3; border-top: 1px solid var(--border); }
+    .code-pane,
+    .result-pane {
+      width: 50%;
+    }
+    .top-region,
+    .logs-pane {
+      height: 50%;
+    }
+    .code-pane { border-right: 1px solid var(--border); }
+    .logs-pane { border-top: 1px solid var(--border); }
 
     @media (max-width: 980px) {
       .workbench {
-        grid-template-columns: 1fr;
-        grid-template-rows: 42% 1fr 1fr;
+        display: block;
       }
-      .code-pane, .result-pane, .logs-pane {
-        grid-column: 1;
+      .top-region {
+        display: block;
+        height: auto !important;
       }
-      .code-pane { grid-row: 1; border-right: none; border-bottom: 1px solid var(--border); }
-      .result-pane { grid-row: 2; border-bottom: 1px solid var(--border); }
-      .logs-pane { grid-row: 3; }
-      .splitter-v, .splitter-h { display: none; }
+      .code-pane,
+      .result-pane,
+      .logs-pane {
+        width: 100% !important;
+        height: auto !important;
+      }
+      .code-pane { border-right: none; border-bottom: 1px solid var(--border); }
+      .result-pane { border-bottom: 1px solid var(--border); }
+      .gutter { display: none !important; }
     }
   </style>
 </head>
@@ -195,25 +208,24 @@
   </div>
 
   <div class="workbench" id="workbench">
-    <section class="pane code-pane">
-      <div class="pane-header">Code</div>
-      <div class="editor-wrap">
-        <div id="editor"></div>
-        <textarea id="editorFallback" class="hidden" spellcheck="false"></textarea>
-      </div>
-    </section>
+    <div class="top-region" id="topRegion">
+      <section class="pane code-pane" id="codePane">
+        <div class="pane-header">Code</div>
+        <div class="editor-wrap">
+          <div id="editor"></div>
+          <textarea id="editorFallback" class="hidden" spellcheck="false"></textarea>
+        </div>
+      </section>
 
-    <div class="splitter-v" id="splitterV" title="Drag to resize code/result"></div>
-    <div class="splitter-h" id="splitterH" title="Drag to resize top/bottom"></div>
+      <section class="pane result-pane" id="resultPane">
+        <div class="pane-header">Result</div>
+        <div class="preview-wrap">
+          <iframe id="preview" src="./runner.html" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer" title="Sandbox result"></iframe>
+        </div>
+      </section>
+    </div>
 
-    <section class="pane result-pane">
-      <div class="pane-header">Result</div>
-      <div class="preview-wrap">
-        <iframe id="preview" src="./runner.html" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer" title="Sandbox result"></iframe>
-      </div>
-    </section>
-
-    <section class="pane logs-pane">
+    <section class="pane logs-pane" id="logsPane">
       <div class="pane-header">Console</div>
       <div class="logs-wrap">
         <pre id="logs"></pre>
@@ -221,7 +233,7 @@
     </section>
   </div>
 
-  <script src="https://unpkg.com/split-grid@1.0.11/dist/split-grid.js"></script>
+  <script src="https://unpkg.com/split.js@1.6.5/dist/split.min.js"></script>
   <script type="module">
     import { examples, examplesById, defaultExampleId } from "../examples/index.js";
 
@@ -235,14 +247,17 @@
     const status = document.getElementById("status");
     const logs = document.getElementById("logs");
     const workbench = document.getElementById("workbench");
-    const splitterV = document.getElementById("splitterV");
-    const splitterH = document.getElementById("splitterH");
+    const topRegion = document.getElementById("topRegion");
+    const codePane = document.getElementById("codePane");
+    const resultPane = document.getElementById("resultPane");
+    const logsPane = document.getElementById("logsPane");
     let monacoEditor = null;
     let isFallbackEditor = false;
     let bindingDecorationIds = [];
     let currentRunId = "";
     let runTimeoutId = null;
-    let splitInstance = null;
+    let splitColumns = null;
+    let splitRows = null;
 
     const params = new URLSearchParams(window.location.search);
     const requestedExample = params.get("example");
@@ -424,72 +439,32 @@
     });
     clearLogsBtn.addEventListener("click", clearLogs);
 
-    const startDrag = (axis, event) => {
-      event.preventDefault();
-      const rect = workbench.getBoundingClientRect();
-
-      const onMove = (moveEvent) => {
-        if (axis === "x") {
-          const leftPx = moveEvent.clientX - rect.left;
-          const minLeft = 220;
-          const minRight = 220;
-          const clamped = Math.max(minLeft, Math.min(leftPx, rect.width - minRight));
-          const percent = (clamped / rect.width) * 100;
-          workbench.style.setProperty("--left-width", `${percent}%`);
-        } else {
-          const topPx = moveEvent.clientY - rect.top;
-          const minTop = 180;
-          const minBottom = 130;
-          const clamped = Math.max(minTop, Math.min(topPx, rect.height - minBottom));
-          const percent = (clamped / rect.height) * 100;
-          workbench.style.setProperty("--top-height", `${percent}%`);
-        }
-        layoutEditor();
-      };
-
-      const onUp = () => {
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("mouseup", onUp);
-      };
-
-      window.addEventListener("mousemove", onMove);
-      window.addEventListener("mouseup", onUp);
-    };
-
-    const enableManualSplitFallback = () => {
-      splitterV.addEventListener("mousedown", (event) => startDrag("x", event));
-      splitterH.addEventListener("mousedown", (event) => startDrag("y", event));
-      setStatus("split fallback mode", "err");
-    };
-
-    const initSplitGrid = () => {
+    const initSplitLayout = () => {
       if (window.innerWidth <= 980) {
         return;
       }
 
       const Split = window.Split;
       if (typeof Split !== "function") {
-        enableManualSplitFallback();
+        setStatus("split unavailable", "err");
         return;
       }
 
-      splitInstance = Split({
-        columnGutters: [{
-          track: 1,
-          element: splitterV
-        }],
-        rowGutters: [{
-          track: 1,
-          element: splitterH
-        }],
-        columnMinSizes: {
-          0: 220,
-          2: 220
-        },
-        rowMinSizes: {
-          0: 180,
-          2: 130
-        },
+      splitColumns = Split([codePane, resultPane], {
+        sizes: [50, 50],
+        minSize: [220, 220],
+        gutterSize: 6,
+        direction: "horizontal",
+        onDrag: () => {
+          layoutEditor();
+        }
+      });
+
+      splitRows = Split([topRegion, logsPane], {
+        sizes: [84, 16],
+        minSize: [180, 130],
+        gutterSize: 6,
+        direction: "vertical",
         onDrag: () => {
           layoutEditor();
         }
@@ -525,7 +500,7 @@
 
     frame.addEventListener("load", run);
     await initEditor();
-    initSplitGrid();
+    initSplitLayout();
     if (isFallbackEditor) {
       setEditorValue(initialCode);
     }
