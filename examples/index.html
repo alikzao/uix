@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UIX Examples</title>
+  <style>
+    :root {
+      --bg: #0e1117;
+      --panel: #151a24;
+      --text: #e8ecf3;
+      --muted: #9aa6b9;
+      --border: #273044;
+      --accent: #4f8cff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+    .bar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      background: #111827;
+    }
+    .title {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    select, button, a {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 13px;
+      text-decoration: none;
+    }
+    button {
+      cursor: pointer;
+    }
+    .primary {
+      background: linear-gradient(135deg, #4f8cff, #3b70e8);
+      border: none;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #fff;
+    }
+    .spacer { flex: 1; }
+    .muted { color: var(--muted); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <h1 class="title">UIX Examples</h1>
+    <select id="exampleSelect"></select>
+    <button class="primary" id="runBtn">Run</button>
+    <a id="sandboxLink" href="../playground/" target="_blank" rel="noopener">Open in Sandbox</a>
+    <div class="spacer"></div>
+    <div class="muted">Local examples runner</div>
+  </div>
+  <iframe id="preview" src="../playground/runner.html" title="Examples preview"></iframe>
+
+  <script type="module">
+    import { examples, examplesById, defaultExampleId } from "./index.js";
+
+    const select = document.getElementById("exampleSelect");
+    const runBtn = document.getElementById("runBtn");
+    const frame = document.getElementById("preview");
+    const sandboxLink = document.getElementById("sandboxLink");
+
+    const params = new URLSearchParams(window.location.search);
+    const requestedExample = params.get("example");
+    let currentKey = examplesById[requestedExample] ? requestedExample : defaultExampleId;
+
+    for (const example of examples) {
+      const opt = document.createElement("option");
+      opt.value = example.id;
+      opt.textContent = example.title;
+      select.appendChild(opt);
+    }
+
+    const syncUrls = () => {
+      const nextUrl = `${window.location.pathname}?example=${encodeURIComponent(currentKey)}`;
+      window.history.replaceState(null, "", nextUrl);
+      sandboxLink.href = `../playground/?example=${encodeURIComponent(currentKey)}`;
+    };
+
+    const run = () => {
+      frame.contentWindow.postMessage(
+        { type: "uix:run", code: examplesById[currentKey].code },
+        "*"
+      );
+    };
+
+    select.value = currentKey;
+    syncUrls();
+
+    select.addEventListener("change", () => {
+      currentKey = select.value;
+      syncUrls();
+      run();
+    });
+
+    runBtn.addEventListener("click", run);
+    frame.addEventListener("load", run);
+  </script>
+</body>
+</html>

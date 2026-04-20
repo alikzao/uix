@@ -11,19 +11,19 @@
       --panel-2: #10141d;
       --text: #e8ecf3;
       --muted: #9aa6b9;
-      --accent: #4f8cff;
       --border: #273044;
-      --success: #2aa06d;
+      --left-width: 50%;
+      --top-height: 84%;
     }
     * { box-sizing: border-box; }
+    html, body { height: 100%; }
     body {
       margin: 0;
       background: var(--bg);
       color: var(--text);
       font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-rows: auto 1fr;
     }
     .topbar {
       display: flex;
@@ -32,8 +32,6 @@
       padding: 10px 14px;
       border-bottom: 1px solid var(--border);
       background: linear-gradient(180deg, #121826 0%, #101521 100%);
-      position: sticky;
-      top: 0;
       z-index: 20;
     }
     .topbar h1 {
@@ -64,13 +62,24 @@
     button.secondary {
       background: #1d2433;
     }
-    .layout {
+    .status {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .status.ok { color: #7ce2a9; }
+    .status.err { color: #ff8f95; }
+
+    .workbench {
+      min-height: 0;
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      min-height: calc(100vh - 56px);
+      grid-template-columns: var(--left-width) 6px 1fr;
+      grid-template-rows: var(--top-height) 6px 1fr;
     }
     .pane {
       min-width: 0;
+      min-height: 0;
       display: flex;
       flex-direction: column;
     }
@@ -84,9 +93,13 @@
     .editor-wrap {
       flex: 1;
       background: #0a0f18;
-      border-right: 1px solid var(--border);
+      position: relative;
     }
-    textarea#editor {
+    #editor {
+      width: 100%;
+      height: 100%;
+    }
+    textarea#editorFallback {
       width: 100%;
       height: 100%;
       border: none;
@@ -99,6 +112,17 @@
       line-height: 1.55;
       padding: 14px;
     }
+    textarea#editorFallback.hidden {
+      display: none;
+    }
+    .monaco-editor .uix-attr-token {
+      color: #66d9ff !important;
+      font-weight: 700 !important;
+    }
+    .monaco-editor .uix-attr-value-token {
+      color: #ffb454 !important;
+      font-weight: 500 !important;
+    }
     .preview-wrap {
       flex: 1;
       background: #0b111b;
@@ -109,23 +133,52 @@
       border: none;
       background: #fff;
     }
-    .status {
-      margin-left: auto;
-      font-size: 12px;
-      color: var(--muted);
-      white-space: nowrap;
+    .logs-wrap {
+      flex: 1;
+      background: #0c1320;
+      overflow: auto;
     }
-    .status.ok { color: #7ce2a9; }
-    .status.err { color: #ff8f95; }
+    pre#logs {
+      margin: 0;
+      padding: 12px;
+      color: #d2ddf1;
+      white-space: pre-wrap;
+      font-size: 12px;
+      line-height: 1.45;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .splitter-v,
+    .splitter-h {
+      background: #22304a;
+      position: relative;
+      z-index: 10;
+    }
+    .splitter-v {
+      cursor: col-resize;
+      grid-column: 2;
+      grid-row: 1;
+    }
+    .splitter-h {
+      cursor: row-resize;
+      grid-column: 1 / 4;
+      grid-row: 2;
+    }
+    .code-pane { grid-column: 1; grid-row: 1; border-right: 1px solid var(--border); }
+    .result-pane { grid-column: 3; grid-row: 1; }
+    .logs-pane { grid-column: 1 / 4; grid-row: 3; border-top: 1px solid var(--border); }
+
     @media (max-width: 980px) {
-      .layout {
+      .workbench {
         grid-template-columns: 1fr;
-        grid-template-rows: minmax(300px, 45vh) minmax(300px, 55vh);
+        grid-template-rows: 42% 1fr 1fr;
       }
-      .editor-wrap {
-        border-right: none;
-        border-bottom: 1px solid var(--border);
+      .code-pane, .result-pane, .logs-pane {
+        grid-column: 1;
       }
+      .code-pane { grid-row: 1; border-right: none; border-bottom: 1px solid var(--border); }
+      .result-pane { grid-row: 2; border-bottom: 1px solid var(--border); }
+      .logs-pane { grid-row: 3; }
+      .splitter-v, .splitter-h { display: none; }
     }
   </style>
 </head>
@@ -136,99 +189,180 @@
       <select id="exampleSelect"></select>
       <button class="primary" id="runBtn">Run</button>
       <button class="secondary" id="resetBtn">Reset</button>
+      <button class="secondary" id="clearLogsBtn">Clear Logs</button>
     </div>
     <div id="status" class="status">ready</div>
   </div>
 
-  <div class="layout">
-    <section class="pane">
+  <div class="workbench" id="workbench">
+    <section class="pane code-pane">
       <div class="pane-header">Code</div>
       <div class="editor-wrap">
-        <textarea id="editor" spellcheck="false"></textarea>
+        <div id="editor"></div>
+        <textarea id="editorFallback" class="hidden" spellcheck="false"></textarea>
       </div>
     </section>
-    <section class="pane">
+
+    <div class="splitter-v" id="splitterV" title="Drag to resize code/result"></div>
+    <div class="splitter-h" id="splitterH" title="Drag to resize top/bottom"></div>
+
+    <section class="pane result-pane">
       <div class="pane-header">Result</div>
       <div class="preview-wrap">
-        <iframe id="preview" src="./runner.html" title="Sandbox result"></iframe>
+        <iframe id="preview" src="./runner.html" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer" title="Sandbox result"></iframe>
+      </div>
+    </section>
+
+    <section class="pane logs-pane">
+      <div class="pane-header">Console</div>
+      <div class="logs-wrap">
+        <pre id="logs"></pre>
       </div>
     </section>
   </div>
 
   <script type="module">
-    const examples = {
-      counter: `class Counter extends api.Component {
-  constructor() {
-    super(root, {});
-    this.initState({ count: 0 });
-  }
+    import { examples, examplesById, defaultExampleId } from "../examples/index.js";
 
-  increment() {
-    this.setState({ count: this.state.count + 1 });
-  }
-
-  decrement() {
-    this.setState({ count: this.state.count - 1 });
-  }
-
-  render() {
-    return \`
-      <div style="font-family: sans-serif; padding: 16px;">
-        <h3>Counter Example</h3>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <button data-click="decrement">-</button>
-          <strong style="min-width:30px; text-align:center;">\${this.state.count}</strong>
-          <button data-click="increment">+</button>
-        </div>
-      </div>
-    \`;
-  }
-}
-
-new Counter();`,
-      popup: `class DemoPopup extends api.PopupComponent {
-  constructor() {
-    super(null, { size: "small", onCloseRequest: false });
-  }
-
-  content() {
-    return \`
-      <div class="popup-sub-content">
-        <label style="color:#000; font-weight:700; grid-column:1 / 4;">UIX Popup</label>
-        <input type="text" placeholder="Try typing here..." />
-        <button id="cancel-\${this.id}" style="grid-column:1 / 4; margin-top:12px;">Close</button>
-      </div>
-    \`;
-  }
-}
-
-const wrap = document.createElement("div");
-wrap.style.padding = "16px";
-wrap.innerHTML = '<h3 style="font-family:sans-serif;">Popup Example</h3><button id="openPopup">Open popup</button>';
-root.appendChild(wrap);
-
-const popup = new DemoPopup();
-document.getElementById("openPopup").addEventListener("click", () => popup.open());`
-    };
-
-    const labels = {
-      counter: "Component Counter",
-      popup: "Popup Component"
-    };
-
-    const editor = document.getElementById("editor");
+    const editorHost = document.getElementById("editor");
+    const editorFallback = document.getElementById("editorFallback");
     const select = document.getElementById("exampleSelect");
     const runBtn = document.getElementById("runBtn");
     const resetBtn = document.getElementById("resetBtn");
+    const clearLogsBtn = document.getElementById("clearLogsBtn");
     const frame = document.getElementById("preview");
     const status = document.getElementById("status");
+    const logs = document.getElementById("logs");
+    const workbench = document.getElementById("workbench");
+    const splitterV = document.getElementById("splitterV");
+    const splitterH = document.getElementById("splitterH");
+    let monacoEditor = null;
+    let isFallbackEditor = false;
+    let bindingDecorationIds = [];
+    let currentRunId = "";
+    let runTimeoutId = null;
 
-    let currentKey = "counter";
+    const params = new URLSearchParams(window.location.search);
+    const requestedExample = params.get("example");
+    let currentKey = examplesById[requestedExample] ? requestedExample : defaultExampleId;
+    let initialCode = examplesById[currentKey].code;
 
-    for (const key of Object.keys(examples)) {
+    const setEditorValue = (value) => {
+      if (monacoEditor) {
+        monacoEditor.setValue(value);
+        return;
+      }
+      editorFallback.value = value;
+    };
+
+    const getEditorValue = () => {
+      if (monacoEditor) {
+        return monacoEditor.getValue();
+      }
+      return editorFallback.value;
+    };
+
+    const showFallbackEditor = () => {
+      isFallbackEditor = true;
+      editorHost.style.display = "none";
+      editorFallback.classList.remove("hidden");
+      editorFallback.value = initialCode;
+      setStatus("editor fallback mode", "err");
+    };
+
+    const loadMonaco = async () => {
+      if (window.monaco && window.require) {
+        return window.monaco;
+      }
+      await new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js";
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+      return await new Promise((resolve, reject) => {
+        window.require.config({
+          paths: {
+            vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs"
+          }
+        });
+        window.require(["vs/editor/editor.main"], () => resolve(window.monaco), reject);
+      });
+    };
+
+    const initEditor = async () => {
+      try {
+        const monaco = await loadMonaco();
+        monacoEditor = monaco.editor.create(editorHost, {
+          value: initialCode,
+          language: "javascript",
+          theme: "vs-dark",
+          automaticLayout: true,
+          fontSize: 13,
+          minimap: { enabled: false },
+          scrollBeyondLastLine: false
+        });
+        const updateEventBindingHighlights = () => {
+          const model = monacoEditor.getModel();
+          if (!model) return;
+          const text = model.getValue();
+          const decorations = [];
+          const tokenRegex = /\b(data-[a-zA-Z0-9-]+|on[A-Z][a-zA-Z0-9]*)\s*=\s*("([^"]*)"|'([^']*)')/g;
+
+          for (const match of text.matchAll(tokenRegex)) {
+            if (typeof match.index !== "number") continue;
+            const full = match[0];
+            const attrName = match[1];
+            const attrOffsetInFull = full.indexOf(attrName);
+            const valueWithQuotes = match[2];
+            const valueOffsetInFull = full.indexOf(valueWithQuotes);
+            const valueInnerStartInFull = valueOffsetInFull + 1;
+            const valueInnerEndInFull = valueOffsetInFull + valueWithQuotes.length - 1;
+
+            const attrStartOffset = match.index + attrOffsetInFull;
+            const attrEndOffset = attrStartOffset + attrName.length;
+            const attrStart = model.getPositionAt(attrStartOffset);
+            const attrEnd = model.getPositionAt(attrEndOffset);
+
+            decorations.push({
+              range: new monaco.Range(attrStart.lineNumber, attrStart.column, attrEnd.lineNumber, attrEnd.column),
+              options: {
+                inlineClassName: "uix-attr-token",
+                hoverMessage: { value: "UIX attribute" }
+              }
+            });
+
+            if (valueInnerEndInFull > valueInnerStartInFull) {
+              const valueStartOffset = match.index + valueInnerStartInFull;
+              const valueEndOffset = match.index + valueInnerEndInFull;
+              const valueStart = model.getPositionAt(valueStartOffset);
+              const valueEnd = model.getPositionAt(valueEndOffset);
+
+              decorations.push({
+                range: new monaco.Range(valueStart.lineNumber, valueStart.column, valueEnd.lineNumber, valueEnd.column),
+                options: {
+                  inlineClassName: "uix-attr-value-token",
+                  hoverMessage: { value: "UIX attribute value" }
+                }
+              });
+            }
+          }
+
+          bindingDecorationIds = monacoEditor.deltaDecorations(bindingDecorationIds, decorations);
+        };
+
+        monacoEditor.onDidChangeModelContent(updateEventBindingHighlights);
+        updateEventBindingHighlights();
+      } catch (_error) {
+        showFallbackEditor();
+      }
+    };
+
+    for (const example of examples) {
       const opt = document.createElement("option");
-      opt.value = key;
-      opt.textContent = labels[key] || key;
+      opt.value = example.id;
+      opt.textContent = example.title;
       select.appendChild(opt);
     }
 
@@ -237,39 +371,121 @@ document.getElementById("openPopup").addEventListener("click", () => popup.open(
       status.className = `status ${mode}`.trim();
     };
 
+    const clearLogs = () => {
+      logs.textContent = "";
+    };
+
+    const addLog = (line) => {
+      logs.textContent += `${line}\n`;
+      logs.parentElement.scrollTop = logs.parentElement.scrollHeight;
+    };
+
     const run = () => {
+      clearLogs();
+      currentRunId = `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      if (runTimeoutId) {
+        clearTimeout(runTimeoutId);
+      }
       frame.contentWindow.postMessage(
-        { type: "uix:run", code: editor.value },
-        "*"
+        { type: "uix:run", code: getEditorValue(), runId: currentRunId },
+        window.location.origin
       );
+      runTimeoutId = window.setTimeout(() => {
+        setStatus("execution timeout, runner restarted", "err");
+        frame.src = `./runner.html?reload=${Date.now()}`;
+      }, 2500);
       setStatus("running...");
     };
 
     select.value = currentKey;
-    editor.value = examples[currentKey];
 
     select.addEventListener("change", () => {
       currentKey = select.value;
-      editor.value = examples[currentKey];
+      initialCode = examplesById[currentKey].code;
+      setEditorValue(initialCode);
+      const nextUrl = `${window.location.pathname}?example=${encodeURIComponent(currentKey)}`;
+      window.history.replaceState(null, "", nextUrl);
       run();
     });
 
     runBtn.addEventListener("click", run);
     resetBtn.addEventListener("click", () => {
-      editor.value = examples[currentKey];
+      initialCode = examplesById[currentKey].code;
+      setEditorValue(initialCode);
       run();
+    });
+    clearLogsBtn.addEventListener("click", clearLogs);
+
+    const startDrag = (axis, event) => {
+      event.preventDefault();
+      const rect = workbench.getBoundingClientRect();
+
+      const onMove = (moveEvent) => {
+        if (axis === "x") {
+          const leftPx = moveEvent.clientX - rect.left;
+          const minLeft = 220;
+          const minRight = 220;
+          const clamped = Math.max(minLeft, Math.min(leftPx, rect.width - minRight));
+          const percent = (clamped / rect.width) * 100;
+          workbench.style.setProperty("--left-width", `${percent}%`);
+        } else {
+          const topPx = moveEvent.clientY - rect.top;
+          const minTop = 180;
+          const minBottom = 130;
+          const clamped = Math.max(minTop, Math.min(topPx, rect.height - minBottom));
+          const percent = (clamped / rect.height) * 100;
+          workbench.style.setProperty("--top-height", `${percent}%`);
+        }
+        if (monacoEditor) {
+          monacoEditor.layout();
+        }
+      };
+
+      const onUp = () => {
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+      };
+
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+    };
+
+    splitterV.addEventListener("mousedown", (event) => startDrag("x", event));
+    splitterH.addEventListener("mousedown", (event) => startDrag("y", event));
+    window.addEventListener("resize", () => {
+      if (monacoEditor) {
+        monacoEditor.layout();
+      }
     });
 
     window.addEventListener("message", (event) => {
-      if (!event.data || event.data.type !== "uix:status") return;
-      if (event.data.ok) {
-        setStatus("ok", "ok");
-      } else {
-        setStatus(event.data.error || "runtime error", "err");
+      if (event.origin !== window.location.origin) return;
+      if (event.source !== frame.contentWindow) return;
+      if (!event.data) return;
+      if (event.data.type === "uix:status") {
+        if (event.data.runId !== currentRunId) return;
+        if (runTimeoutId) {
+          clearTimeout(runTimeoutId);
+          runTimeoutId = null;
+        }
+        if (event.data.ok) {
+          setStatus("ok", "ok");
+        } else {
+          setStatus(event.data.error || "runtime error", "err");
+        }
+        return;
+      }
+      if (event.data.type === "uix:log") {
+        if (event.data.runId !== currentRunId) return;
+        addLog(event.data.message || "");
       }
     });
 
     frame.addEventListener("load", run);
+    await initEditor();
+    if (isFallbackEditor) {
+      setEditorValue(initialCode);
+    }
   </script>
 </body>
 </html>
