@@ -7,7 +7,7 @@ export class PopupComponent extends ExtendedComponent {
         this.size = props.size ? props.size : null;
         this.BToMPage = props.BToMPage ? true : false;
         this.id = id || Math.random().toString(36).substr(2, 9);
-        this.popupElement = null; // Ссылка на корневой элемент попапа
+        this.popupElement = null; 
         this.onCloseRequest = props.onCloseRequest != undefined ? props.onCloseRequest : true;
     }
 
@@ -32,7 +32,6 @@ export class PopupComponent extends ExtendedComponent {
         this.popupOverlay = this.popupElement.querySelector(`#popup-overlay-${this.id}`);
         this.popupContent = this.popupElement.querySelector(`#popup-content-${this.id}`);
         if (this.popupElement && this.popupOverlay && this.popupContent) {
-            // Устанавливаем стили для отображения попапа
             this.popupElement.style.display = 'flex';
             this.popupElement.style.animation = 'slideInFromLeft 0.4s ease-out forwards';
             this.popupOverlay.style.display = 'flex';
@@ -42,7 +41,6 @@ export class PopupComponent extends ExtendedComponent {
         }
     }
 
-    // this.popupElement.classList.add('slide-out-to-left');
     async hide(isRemove) {
         if (this.popupElement) {
             this.popupElement.style.animation = 'slideOutToLeft 0.3s ease-in forwards';
@@ -80,20 +78,23 @@ export class PopupComponent extends ExtendedComponent {
     attachEvents() {
         this.popupOverlay = document.getElementById(`popup-overlay-${this.id}`);
         this.popupContent = document.getElementById(`popup-content-${this.id}`);
+        // Delegate close actions to body so dynamic popup controls are handled consistently.
         this.addEvent('body',`#close-popup-${this.id}-1`, 'click', async () => await this.hide(true));
         this.addEvent('body',`#close-popup-${this.id}-2`, 'click', async () => await this.hide(true));
         this.addEvent('body',`#close-popup-${this.id}-3`, 'click', async () => await this.hide(true));
         this.addEvent('body',`#cancel-${this.id}`, 'click', async () => await this.hide(true));
     }
 
-    leftCloseBtn() { // каретка
+    leftCloseBtn() {
+        // Left chevron close button for mobile layout.
         const html = this.isMobile && this.size !== 'small'
             ? `<span class="close-button2 angled-less-than" id="close-popup-${this.id}-2" style="color:white !important; font-weight:900; font-size:26px; font-family: 'Arial Black', sans-serif;">&#10216;</span>`
             : ``;
         return html;
     }
 
-    rightCloseBtn() { // крестик
+    rightCloseBtn() {
+        // Standard close icon for desktop and compact popup size.
         const html = (this.size === 'small' || !this.isMobile)
             ? `<span class="close-button" id="close-popup-${this.id}-1">&times;</span>`
             : ``;
@@ -203,9 +204,9 @@ export class PopupComponent extends ExtendedComponent {
                     height: 100%;
                     align-items: center;
                     justify-content: center;
-                    z-index: 1000; /* Высокий z-index для отображения поверх других элементов */
-                    /*animation: slideInFromLeft 0.4s ease-out ;*/
-                    /*animation-fill-mode: forwards;*/
+                    z-index: 1000; 
+                    
+                    
                 }
                 input[type="text"] {
                     background-color: #222222;
@@ -229,9 +230,9 @@ export class PopupComponent extends ExtendedComponent {
                     left: 0;
                     width: 100%;
                     height: 100%;
-                    background-color: rgba(0, 0, 0, 0.5); /* Затемненный фон */
+                    background-color: rgba(0, 0, 0, 0.5); 
                 }
-                /* Тёмный фон и текст, как в примере */
+                
                 input[type="datetime-local"].styled-input {
                   background-color: #222222;
                   color: #ffffff;
@@ -240,14 +241,14 @@ export class PopupComponent extends ExtendedComponent {
                   padding: 8px 10px;
                 }
                 
-                /* Цвет иконки календаря/часов (webkit-браузеры) */
+                
                 input[type="datetime-local"].styled-input::-webkit-calendar-picker-indicator {
-                  filter: invert(1);           /* делает иконку светлой на тёмном фоне */
+                  filter: invert(1);           
                   opacity: 0.8;
                   cursor: pointer;
                 }
                 
-                /* Цвет разделителей и внутренних полей (Chrome/Edge) */
+                
                 input[type="datetime-local"].styled-input::-webkit-datetime-edit,
                 input[type="datetime-local"].styled-input::-webkit-datetime-edit-fields-wrapper,
                 input[type="datetime-local"].styled-input::-webkit-datetime-edit-text,
@@ -259,26 +260,26 @@ export class PopupComponent extends ExtendedComponent {
                   color: #ffffff;
                 }
                 
-                /* Фокус */
+                
                 input[type="datetime-local"].styled-input:focus {
                   outline: none;
                   border-color: #6b6bff;
                   box-shadow: 0 0 0 3px rgba(107,107,255,0.2);
                 }
                 
-                /* Системное тёмное восприятие (поддержка нативных пикеров) */
+                
                 input[type="datetime-local"].styled-input {
                   color-scheme: dark;
                 }
                 textarea.styled-input.form-control {
                   background-color: #222222;
                   color: #ffffff;
-                  border: 1px solid #eeeeee;  /* почти белый бордер */
+                  border: 1px solid #eeeeee;  
                   border-radius: 6px;
                   padding: 8px 10px;
                   min-height: 90px;
-                  resize: vertical;           /* тянется только по вертикали */
-                  color-scheme: dark;         /* нативные контролы в тёмной теме */
+                  resize: vertical;           
+                  color-scheme: dark;         
                 }
                 textarea.styled-input.form-control::placeholder {
                   color: #cfcfcf;
@@ -294,7 +295,7 @@ export class PopupComponent extends ExtendedComponent {
                     background-color: #fff;
                     padding: 20px;
                     border-radius: 5px;
-                    z-index: 1001; /* Выше, чем overlay */
+                    z-index: 1001; 
                     color: white;
                 }
 
@@ -314,17 +315,4 @@ export class PopupComponent extends ExtendedComponent {
     }
 }
 
-// this.closeButton = document.getElementById('closePopup');
-// this.closeButton2 = document.getElementById('closePopup2');
-// this.btnNewItem = document.getElementsByClassName('btnNewItem')[0];
-
-// getHorData() {
-//     return `
-//             <table class="table table-bordered" style="color: white !important;">
-//                 <thead>
-//                     <tr><th>Name</th><th>Sign</th><th>Degree</th></tr>
-//                 </thead>
-//                 <tbody id="planetData" style="color: white !important;"></tbody>
-//             </table> `;
-// }
 

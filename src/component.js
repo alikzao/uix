@@ -22,10 +22,6 @@ export class Component {
         this._reducerIndex = 0;
     }
 
-    // initState(state) {
-    //     this.state = this.createReactiveState(state);
-    //     this.renderComponent();
-    // }
     initState(state) {
         if (!this.state) {
             this.state = this.createReactiveState(state);
@@ -59,7 +55,7 @@ export class Component {
         const elements = this.el.querySelectorAll('[data-click], [onClick], [onInput], [onChange]');
 
         elements.forEach(el => {
-            // Обрабатываем data-click (рекомендуемый способ)
+            // Handle data-click as the preferred click binding mechanism.
             if (el.hasAttribute('data-click')) {
                 const methodName = el.getAttribute('data-click');
                 if (typeof this[methodName] === 'function') {
@@ -67,7 +63,7 @@ export class Component {
                 }
             }
 
-            // Обрабатываем любые атрибуты onEvent
+            // Handle generic onEvent attributes such as onClick/onInput/onChange.
             Array.from(el.attributes).forEach(attr => {
                 if (attr.name.startsWith('on')) {
                     const eventType = attr.name.slice(2).toLowerCase();
@@ -161,50 +157,42 @@ export class Component {
 
     dispose() {}
 
-    /**
-     * Регистрирует обработчик события с делегированием.
-     *
-     * @param {string} parentSelector - CSS-селектор родительского элемента, на котором устанавливается обработчик.
-     * @param {string|HTMLElement} selectorOrElement - CSS-селектор или конкретный элемент для делегирования события.
-     * @param {string} eventType - Тип события (например, 'click').
-     * @param {Function} handler - Функция-обработчик события.
-     */
     addEvent(parentSelector, selectorOrElement, eventType, handler) {
         const parentElement = document.querySelector(parentSelector);
         if (!parentElement) return;
 
-        // Создаем обработчик с делегированием, который будет навешен на родителя.
+        // Create one delegated listener on the parent and match descendants at runtime.
         const delegatedHandler = (event) => {
             let currentElement = event.target;
-            // Проходим по дереву от target до родительского элемента.
+            // Walk up from event.target until the parent is reached.
             while (currentElement && currentElement !== parentElement) {
-                // Если selectorOrElement — строка, используем его как CSS-селектор.
+                // If selectorOrElement is a selector, match against it.
                 if (typeof selectorOrElement === 'string') {
                     if (currentElement.matches(selectorOrElement)) {
-                        // Вызываем обработчик в контексте текущего объекта.
+                        // Execute the handler in this component context.
                         handler.call(this, event);
                         event.stopPropagation();
                         return;
                     }
                 } else {
-                    // Если передан сам элемент, сравниваем его с текущим.
+                    // If an element instance is passed, compare by identity.
                     if (currentElement === selectorOrElement) {
                         handler.call(this, event);
                         event.stopPropagation();
                         return;
                     }
                 }
-                // Переходим к родительскому элементу.
+                // Continue climbing up the DOM tree.
                 currentElement = currentElement.parentNode;
             }
         };
-        // Проверяем, не добавлялся ли уже обработчик с такими параметрами.
+        // Avoid duplicate delegated bindings with the same key tuple.
         const isAlreadyAdded = this.currentEventHandlers.some(registered =>
             registered.element === parentElement &&
             registered.eventType === eventType &&
             registered.selector === selectorOrElement
         );
-        // Если такой обработчик еще не зарегистрирован, навешиваем его и сохраняем ссылку.
+        // Register once and keep a reference for later cleanup.
         if (!isAlreadyAdded) {
             parentElement.addEventListener(eventType, delegatedHandler);
             this.currentEventHandlers.push({element: parentElement, eventType: eventType, method: delegatedHandler, selector: selectorOrElement});
@@ -219,42 +207,3 @@ export class Component {
         this.currentEventHandlers = [];
     }
 }
-
-// this.state = { ...this.state, ...newState };
-
-// bindEvents() {
-//     const elements = this.el.querySelectorAll('[data-click]');
-//     elements.forEach(el => {
-//         const methodName = el.getAttribute('data-click');
-//
-//         // Проверяем, является ли содержимое полноценной JS-функцией
-//         if (methodName.startsWith('(') || methodName.includes('=>')) {
-//             try {
-//                 const func = new Function(`return ${methodName}`)();
-//                 if (typeof func === 'function') {
-//                     el.addEventListener('click', func);
-//                 }
-//             } catch (error) {
-//                 console.error(`Ошибка при обработке data-click: ${error.message}`);
-//             }
-//         } else if (typeof this[methodName] === 'function') {
-//             el.addEventListener('click', (event) => this[methodName](event));
-//         }
-//     });
-// }
-
-
-// mount() {
-//     const proto = Object.getPrototypeOf(this); // Определяем текущий класс
-//     const methodSource = proto.render.toString(); // Получаем исходный код метода
-//     const className = proto.constructor.name; // Получаем имя класса
-//     console.log(`🔍 render() вызван из класса: ${className}`);
-//     console.log("📜 Код метода render():\n", methodSource);
-//     console.trace(); // Покажет стек вызовов
-//     const rend = this.render();
-//     if (rend === undefined) {
-//         console.error("⚠️ render() вернул undefined!", this);
-//         debugger; // Остановит выполнение
-//     }
-//     this.el.innerHTML = rend || "<!-- Ошибка: render() вернул undefined -->";
-// }

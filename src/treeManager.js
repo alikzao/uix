@@ -1,12 +1,6 @@
-/**
- * это нужно для виртуального создания дерева, для более удобного рисования
- * когда например есть какието субдокументы и мы не хотим перерисовывать все табличку то прочто удаляем документ из девера
- * и удаляем его из дуум чтоли
- */
 export class TreeManager  {
 
     constructor(getState) {
-        // this.state = state;
         this.getState = getState;
     }
 
@@ -31,48 +25,43 @@ export class TreeManager  {
             for (let i = 0; i < docs.length; i++) {
                 if (docs[i]._id === docId) {
                     docs.splice(i, 1);
-                    return true; // Возвращаем true, если удаление выполнено
+                    return true;
                 }
                 if (docs[i].childrens && docs[i].childrens.length > 0) {
                     if (recursiveRemove(docs[i].childrens, docId)) {
-                        return true; // Прекращаем дальнейший поиск, если удаление выполнено
+                        return true;
                     }
                 }
             }
             return false;
         }
-        // recursiveRemove(this.state.items, docId);
         const state = this.getState();
         recursiveRemove(state.items, docId);
         return state.items;
     }
 
     addNode(newDoc) {
-        // Вспомогательная функция для рекурсивного поиска и вставки
+        // Recursively find a parent and insert the node in-place.
         function recursiveInsert(docs, newDoc) {
             for (let doc of docs) {
                 if (doc._id === newDoc.doc.parentId) {
                     doc.childrens.push(newDoc);
-                    return true; // Возвращаем true, если вставка выполнена
+                    return true;
                 }
                 if (doc.childrens && doc.childrens.length > 0) {
                     if (recursiveInsert(doc.childrens, newDoc)) {
-                        return true; // Прекращаем дальнейший поиск, если вставка выполнена
+                        return true;
                     }
                 }
             }
             return false;
         }
         const state = this.getState();
-        // const inserted = recursiveInsert(this.state.items, newDoc);
         const inserted = recursiveInsert(state.items, newDoc);
         if (!inserted) {
-            // Если родитель не найден, вставляем в корень
             newDoc.doc.parentId = '-';
-            // this.state.items.push(newDoc);
             state.items.push(newDoc);
         }
-        // return this.state.items;
         return state.items;
     }
 
@@ -92,9 +81,7 @@ export class TreeManager  {
             }
             return false;
         };
-        // recursiveUpdate(this.state.items);
         recursiveUpdate(state.items);
-        // recursiveUpdate(this.state.items);
     }
 
     findById(items, id) {

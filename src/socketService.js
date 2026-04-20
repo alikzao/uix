@@ -1,12 +1,8 @@
-// import { config } from './config';
-// const { isDev } = config;
-
 class SocketService {
 
     constructor() {
         if (!SocketService.instance) {
-            // Инициализация сокета с параметрами, если доступны
-            this.socket = null; // Установите позже через метод
+            this.socket = null;
             SocketService.instance = this;
         }
         return SocketService.instance;
@@ -24,10 +20,6 @@ class SocketService {
             options.path = "/socket.io";
             options.transports = ["websocket", "polling"];
             this.socket = io(window.location.origin, options);
-
-            // this.socket = isDev
-            //     ? io.connect(`${window.__CONFIG.domain}:${window.config.port}`, options)
-            //     : io.connect(`https://${window.__CONFIG.domain}:443`, options);
         }
     }
 
@@ -47,12 +39,9 @@ class SocketService {
     }
 
     emit(event, data) {
-        // console.info(`=========================================`);
-        // console.info(`SocketService => emiting event "${event}"`);
         this.getSocket().emit(event, data);
     }
 }
 
 const instance = new SocketService();
-// Object.freeze(instance);
 export default instance;
