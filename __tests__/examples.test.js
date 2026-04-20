@@ -27,6 +27,7 @@ describe("examples smoke execution", () => {
                 this.el = root;
                 this.props = props;
                 this.state = {};
+                this.children = {};
             }
             initState(state) {
                 this.state = { ...state };
@@ -35,6 +36,7 @@ describe("examples smoke execution", () => {
                 this.state = { ...this.state, ...nextState };
             }
             addEvent() {}
+            renderComponent() {}
         }
 
         class PopupComponent {
@@ -44,7 +46,73 @@ describe("examples smoke execution", () => {
             open() {}
         }
 
-        return { Component, PopupComponent };
+        class FunctionalComponent extends Component {
+            constructor(root, setup, props = {}) {
+                super(root, props);
+                this.setup = setup;
+                this._hooks = [];
+                this._hookIndex = 0;
+            }
+
+            useState(initialValue) {
+                const index = this._hookIndex++;
+                if (this._hooks.length <= index) {
+                    this._hooks.push({
+                        state: typeof initialValue === "function" ? initialValue() : initialValue
+                    });
+                }
+
+                const setValue = (nextValue) => {
+                    const currentValue = this._hooks[index].state;
+                    this._hooks[index].state = typeof nextValue === "function" ? nextValue(currentValue) : nextValue;
+                };
+
+                return [this._hooks[index].state, setValue];
+            }
+
+            useMethods(methods = {}) {
+                Object.entries(methods).forEach(([name, handler]) => {
+                    this[name] = handler.bind(this);
+                });
+            }
+
+            useChildren(children = {}) {
+                this.children = children;
+            }
+
+            useEvents() {}
+
+            render() {
+                this._hookIndex = 0;
+                return this.setup({
+                    useState: this.useState.bind(this),
+                    useMethods: this.useMethods.bind(this),
+                    useChildren: this.useChildren.bind(this),
+                    useEvents: this.useEvents.bind(this),
+                    addEvent: this.addEvent.bind(this),
+                    props: this.props,
+                    component: this,
+                    el: this.el
+                });
+            }
+
+            mount() {
+                this.el.innerHTML = this.render();
+            }
+        }
+
+        const createComponent = (root, setup, props = {}, options = {}) => {
+            const component = new FunctionalComponent(root, setup, props);
+            if (options.autoRender !== false && root && typeof root.appendChild === "function") {
+                const node = { innerHTML: "" };
+                component.el = node;
+                component.mount();
+                root.appendChild(node);
+            }
+            return component;
+        };
+
+        return { Component, PopupComponent, FunctionalComponent, createComponent };
     };
 
     test("counter example executes", () => {
@@ -95,6 +163,17 @@ describe("examples smoke execution", () => {
         const root = { appendChild: jest.fn() };
         const api = createApi();
         const code = examplesById["event-bindings"].code;
+
+        expect(() => {
+            const run = new Function("api", "root", "log", code);
+            run(api, root, () => {});
+        }).not.toThrow();
+    });
+
+    test("functional component example executes", () => {
+        const root = { appendChild: jest.fn() };
+        const api = createApi();
+        const code = examplesById["functional-component"].code;
 
         expect(() => {
             const run = new Function("api", "root", "log", code);

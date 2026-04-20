@@ -1,4 +1,5 @@
 export { Component } from './component.js';
+export { FunctionalComponent, createComponent, component } from './functionalComponent.js';
 export { ExtendedComponent } from './extendedComponent.js';
 export { PopupComponent } from './popupComponent.js';
 export { TreeManager } from './treeManager.js';
