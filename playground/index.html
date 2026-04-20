@@ -221,6 +221,7 @@
     </section>
   </div>
 
+  <script src="https://unpkg.com/split-grid@1.0.11/dist/split-grid.js"></script>
   <script type="module">
     import { examples, examplesById, defaultExampleId } from "../examples/index.js";
 
@@ -241,6 +242,7 @@
     let bindingDecorationIds = [];
     let currentRunId = "";
     let runTimeoutId = null;
+    let splitInstance = null;
 
     const params = new URLSearchParams(window.location.search);
     const requestedExample = params.get("example");
@@ -359,6 +361,12 @@
       }
     };
 
+    const layoutEditor = () => {
+      if (monacoEditor) {
+        monacoEditor.layout();
+      }
+    };
+
     for (const example of examples) {
       const opt = document.createElement("option");
       opt.value = example.id;
@@ -436,9 +444,7 @@
           const percent = (clamped / rect.height) * 100;
           workbench.style.setProperty("--top-height", `${percent}%`);
         }
-        if (monacoEditor) {
-          monacoEditor.layout();
-        }
+        layoutEditor();
       };
 
       const onUp = () => {
@@ -450,12 +456,48 @@
       window.addEventListener("mouseup", onUp);
     };
 
-    splitterV.addEventListener("mousedown", (event) => startDrag("x", event));
-    splitterH.addEventListener("mousedown", (event) => startDrag("y", event));
-    window.addEventListener("resize", () => {
-      if (monacoEditor) {
-        monacoEditor.layout();
+    const enableManualSplitFallback = () => {
+      splitterV.addEventListener("mousedown", (event) => startDrag("x", event));
+      splitterH.addEventListener("mousedown", (event) => startDrag("y", event));
+      setStatus("split fallback mode", "err");
+    };
+
+    const initSplitGrid = () => {
+      if (window.innerWidth <= 980) {
+        return;
       }
+
+      const Split = window.Split;
+      if (typeof Split !== "function") {
+        enableManualSplitFallback();
+        return;
+      }
+
+      splitInstance = Split({
+        columnGutters: [{
+          track: 1,
+          element: splitterV
+        }],
+        rowGutters: [{
+          track: 1,
+          element: splitterH
+        }],
+        columnMinSizes: {
+          0: 220,
+          2: 220
+        },
+        rowMinSizes: {
+          0: 180,
+          2: 130
+        },
+        onDrag: () => {
+          layoutEditor();
+        }
+      });
+    };
+
+    window.addEventListener("resize", () => {
+      layoutEditor();
     });
 
     window.addEventListener("message", (event) => {
@@ -483,6 +525,7 @@
 
     frame.addEventListener("load", run);
     await initEditor();
+    initSplitGrid();
     if (isFallbackEditor) {
       setEditorValue(initialCode);
     }
