@@ -7,7 +7,7 @@ It gives you class-based components, local state, child components, delegated ev
 ## Playground
 
 - Home: [https://alikzao.github.io/uix/](https://alikzao.github.io/uix/)
-- Sandbox: [https://alikzao.github.io/uix/playground/](https://alikzao.github.io/uix/playground/)
+- Sandbox: [https://alikzao.github.io/uix-playground/](https://alikzao.github.io/uix-playground/)
 - Examples runner: [https://alikzao.github.io/uix/examples/](https://alikzao.github.io/uix/examples/)
 
 ## Features
@@ -16,7 +16,7 @@ It gives you class-based components, local state, child components, delegated ev
 
 Create a component, keep local state, and re-render with a small API.
 
-- Sandbox: [Counter example](https://alikzao.github.io/uix/playground/?example=counter)
+- Sandbox: [Counter example](https://alikzao.github.io/uix-playground/?example=counter)
 
 ```js
 class Counter extends Component {
@@ -44,7 +44,7 @@ class Counter extends Component {
 
 Compose components inside other components with `this.children` and `data-child`.
 
-- Sandbox: [Nested components example](https://alikzao.github.io/uix/playground/?example=nested-components)
+- Sandbox: [Nested components example](https://alikzao.github.io/uix-playground/?example=nested-components)
 
 ```js
 class ParentCard extends Component {
@@ -66,7 +66,7 @@ class ParentCard extends Component {
 
 UIX supports both inline component bindings like `onClick="methodName"` and delegated events through `addEvent(...)`.
 
-- Sandbox: [Event bindings example](https://alikzao.github.io/uix/playground/?example=event-bindings)
+- Sandbox: [Event bindings example](https://alikzao.github.io/uix-playground/?example=event-bindings)
 
 ```js
 render() {
@@ -89,7 +89,7 @@ addEvents() {
 
 Build modal and popup flows on top of the provided popup base class.
 
-- Sandbox: [Popup example](https://alikzao.github.io/uix/playground/?example=popup)
+- Sandbox: [Popup example](https://alikzao.github.io/uix-playground/?example=popup)
 
 ## Why UIX
 
@@ -139,7 +139,6 @@ components/
     socketService.js
     index.js
   examples/
-  playground/
   __tests__/
   package.json
   README.md

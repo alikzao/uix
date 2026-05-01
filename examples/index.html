@@ -67,11 +67,11 @@
     <h1 class="title">UIX Examples</h1>
     <select id="exampleSelect"></select>
     <button class="primary" id="runBtn">Run</button>
-    <a id="sandboxLink" href="../playground/" target="_blank" rel="noopener">Open in Sandbox</a>
+    <a id="sandboxLink" href="https://alikzao.github.io/uix-playground/" target="_blank" rel="noopener">Open in Sandbox</a>
     <div class="spacer"></div>
     <div class="muted">Local examples runner</div>
   </div>
-  <iframe id="preview" src="../playground/runner.html" title="Examples preview"></iframe>
+  <iframe id="preview" src="https://alikzao.github.io/uix-playground/runner.html" title="Examples preview"></iframe>
 
   <script type="module">
     import { examples, examplesById, defaultExampleId } from "./index.js";
@@ -95,7 +95,7 @@
     const syncUrls = () => {
       const nextUrl = `${window.location.pathname}?example=${encodeURIComponent(currentKey)}`;
       window.history.replaceState(null, "", nextUrl);
-      sandboxLink.href = `../playground/?example=${encodeURIComponent(currentKey)}`;
+      sandboxLink.href = `https://alikzao.github.io/uix-playground/?example=${encodeURIComponent(currentKey)}`;
     };
 
     const run = () => {
