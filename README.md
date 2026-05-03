@@ -130,6 +130,9 @@ You can use UIX without any special setup.
 
 ```text
 components/
+  dist/
+    uix-components.esm.js
+    uix-components.iife.js
   src/
     component.js
     extendedComponent.js
@@ -143,6 +146,17 @@ components/
   package.json
   README.md
 ```
+
+## Build
+
+```bash
+npm run build
+```
+
+Build outputs are written to `dist/`:
+
+- `dist/uix-components.esm.js` for ESM/bundler usage
+- `dist/uix-components.iife.js` for direct script usage in browsers
 
 ## Public API
 

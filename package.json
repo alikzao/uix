@@ -1,29 +1,47 @@
 {
   "name": "@modules/core-components",
   "version": "1.0.0",
-  "private": true,
   "license": "Apache-2.0",
   "type": "module",
   "description": "Base client component framework for the monorepo",
-  "main": "./src/index.js",
+  "main": "./dist/uix-components.iife.js",
+  "module": "./dist/uix-components.esm.js",
   "scripts": {
+    "build": "webpack --config ./webpack.config.cjs --mode production",
+    "build:dev": "webpack --config ./webpack.config.cjs --mode development",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --config ./jest.config.cjs"
   },
   "exports": {
-    ".": "./src/index.js",
-    "./index.js": "./src/index.js",
-    "./component": "./src/component.js",
-    "./component.js": "./src/component.js",
-    "./extendedComponent": "./src/extendedComponent.js",
-    "./extendedComponent.js": "./src/extendedComponent.js",
-    "./popupComponent": "./src/popupComponent.js",
-    "./popupComponent.js": "./src/popupComponent.js",
-    "./treeManager": "./src/treeManager.js",
-    "./treeManager.js": "./src/treeManager.js",
-    "./emitter": "./src/emitter.js",
-    "./emitter.js": "./src/emitter.js",
-    "./socketService": "./src/socketService.js",
-    "./socketService.js": "./src/socketService.js",
+    ".": {
+      "import": "./dist/uix-components.esm.js",
+      "default": "./dist/uix-components.iife.js"
+    },
+    "./index.js": {
+      "import": "./dist/uix-components.esm.js",
+      "default": "./dist/uix-components.iife.js"
+    },
+    "./component": "./dist/uix-components.esm.js",
+    "./component.js": "./dist/uix-components.esm.js",
+    "./extendedComponent": "./dist/uix-components.esm.js",
+    "./extendedComponent.js": "./dist/uix-components.esm.js",
+    "./popupComponent": "./dist/uix-components.esm.js",
+    "./popupComponent.js": "./dist/uix-components.esm.js",
+    "./treeManager": "./dist/uix-components.esm.js",
+    "./treeManager.js": "./dist/uix-components.esm.js",
+    "./emitter": "./dist/uix-components.esm.js",
+    "./emitter.js": "./dist/uix-components.esm.js",
+    "./socketService": "./dist/uix-components.esm.js",
+    "./socketService.js": "./dist/uix-components.esm.js",
     "./package.json": "./package.json"
-  }
+  },
+  "files": [
+    "dist",
+    "src",
+    "jest.config.cjs",
+    "__tests__",
+    "examples",
+    "README.md",
+    "LICENSE",
+    "webpack.config.cjs"
+  ]
 }
